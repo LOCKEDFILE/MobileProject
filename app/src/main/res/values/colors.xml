@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#008577</color>
+    <color name="colorPrimaryDark">#00574B</color>
+    <color name="colorAccent">#E95454</color>
+
+    <color name="button_up">#F7F7F7</color>
+    <color name="button_down">#DADADA</color>
+
+    <color name="bit_button_up">#7BA0BD</color>
+    <color name="bit_button_down">#587486</color>
+
+    <color name="result_button_up">#65B971</color>
+    <color name="result_button_down">#4D704C</color>
+
+
+    <color name="white_">#F6F6F6</color>
+    <color name="blacky">#414141</color>
+    <color name= "black_2">#838383</color>
+</resources>
