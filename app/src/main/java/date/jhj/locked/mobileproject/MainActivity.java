@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -13,9 +14,14 @@ import android.content.ClipData;
 import android.content.ClipDescription;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.os.Handler;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.util.TypedValue;
@@ -223,15 +229,72 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         final ItemTouchHelper.SimpleCallback simpleItemTouchCallback =  new ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP | ItemTouchHelper.DOWN| ItemTouchHelper.START| ItemTouchHelper.END, ItemTouchHelper.START|ItemTouchHelper.END) {
             @Override
             public void onSwiped(RecyclerView.ViewHolder viewHolder, int swipeDir) {
-                Log.e("포지션", " "+viewHolder.getAdapterPosition());
-                history_list.remove(viewHolder.getAdapterPosition());
-                // 백업
-                BACKUP = new Gson().toJson(history_list);
-                BackupData.setPrefHistory(MainActivity.this,BACKUP);
+                Log.e("swipe :: ", " "+swipeDir); // << 16 // >> 32
+                if(swipeDir==16) {// << 삭제
+                    history_list.remove(viewHolder.getAdapterPosition());
+                    // 백업
+                    BACKUP = new Gson().toJson(history_list);
+                    BackupData.setPrefHistory(MainActivity.this, BACKUP);
 
-                adapter.notifyItemRemoved(viewHolder.getAdapterPosition()); //TODO 스와이프 삭제기능
+                    adapter.notifyItemRemoved(viewHolder.getAdapterPosition()); //TODO 스와이프 삭제기능
+                    new Handler().postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            adapter.notifyDataSetChanged(); // 숫자 변경떄문! 인덱스
+                        }
+                    }, 1000);
+                }
+                else if(swipeDir==32){// >> 복사
+                    TextView calTV = viewHolder.itemView.findViewById(R.id.cal);
+                    TextView resultTV = viewHolder.itemView.findViewById(R.id.result);
+                    during.setText(calTV.getText().toString());
+                    result_text.setText(resultTV.getText().toString());
+                    //
+                    new Handler().postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            adapter.notifyDataSetChanged(); // 숫자 변경떄문! 인덱스
+                        }
+                    }, 150);
+
+                }
             }
+            GradientDrawable background;
+            Drawable xMark;
+            boolean initiated;
 
+            @Override// 이걸로 ... 뒷 배경
+            public void onChildDraw(Canvas c, RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, float dX, float dY, int actionState, boolean isCurrentlyActive) {
+                View itemView = viewHolder.itemView;
+                if (viewHolder.getAdapterPosition() == -1) {
+                    return;
+                }
+
+                if (!initiated) {
+                    background=new GradientDrawable();
+                    background.setCornerRadius(60f);
+                    initiated = true;
+                }
+                // dx 음수 == <<<
+                if(dX <0) {
+                    background.setColor(getColor(R.color.colorAccent));
+                    xMark = ContextCompat.getDrawable(MainActivity.this, R.drawable.backspace);
+                    xMark.setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_ATOP);
+                    background.setBounds(itemView.getLeft() + (int) dX, itemView.getTop(), itemView.getRight(), itemView.getBottom());
+                    xMark.setBounds(itemView.getRight() - 80, itemView.getHeight() / 2, itemView.getRight() - 30, itemView.getHeight() / 2 + 50);
+                }else if(dX>0){
+                    background.setColor(getColor(R.color.result_button_up));
+                    xMark = ContextCompat.getDrawable(MainActivity.this, R.drawable.copy);
+                    xMark.setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_ATOP);
+                    background.setBounds(itemView.getLeft(), itemView.getTop(), itemView.getRight()+(int)dX, itemView.getBottom());
+                    xMark.setBounds(itemView.getLeft() + 30, itemView.getHeight() / 2, itemView.getLeft() + 80, itemView.getHeight() / 2 + 50);
+
+                }
+
+                background.draw(c);
+                xMark.draw(c);
+                super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive);
+            }
             @Override
             public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
                 final int fromPos = viewHolder.getAdapterPosition();
