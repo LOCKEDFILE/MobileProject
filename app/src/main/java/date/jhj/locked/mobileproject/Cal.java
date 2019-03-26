@@ -70,7 +70,7 @@ public class Cal {
         Queue firstQueue = new LinkedList();
         for(int i=0; i<sNumList.length(); i++){
             String oneChar = sNumList.substring(i, i+1);
-            if ("+-*/()%&|~^".indexOf(oneChar) >= 0 ){// TODO 여기에 % 랑 비트연산자 추가
+            if ("+-*/()%&|~^".indexOf(oneChar) >= 0 ){
 
                 // 3+(3  과 같이   4칙연산자와 괄호가 동시에 존재 하는 경우 때문
                 if (!"".equals(sOneNum)) firstQueue.offer(sOneNum);

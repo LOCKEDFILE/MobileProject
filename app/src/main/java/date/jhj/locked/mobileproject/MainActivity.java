@@ -14,12 +14,14 @@ import android.content.ClipData;
 import android.content.ClipDescription;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.method.ScrollingMovementMethod;
@@ -37,6 +39,11 @@ import android.widget.Toast;
 
 import com.google.gson.Gson;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -67,8 +74,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     Button result_button;
     // 최근 목록
     ImageButton history;
-    List<String> history_cal=new ArrayList<>();
-    List<String> history_result=new ArrayList<>();
 
     AlertDialog dialog;
     View dialog_view;
@@ -79,9 +84,25 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     Button complete;
     // 파일 읽기
     ImageButton file;
-
+    String fileAllStr;
+    List<String> fileStr=new ArrayList<>();
+    List<HistoryData> fileList=new ArrayList<>();
     // Backup
     String BACKUP;
+
+    // 퀴즈 모드
+    boolean quiz_flag;
+    Button quiz_info;
+    Button quiz_time;
+    Button quiz_score;
+    Button quiz_stage;
+    Button quiz_close;
+    Button quiz_count;
+    TextView quiz_;
+    int quiz_num=0;
+    int quiz_count_=0;
+
+    long quiz_time1,quiz_time2;
 
     //
     float DURING_DP=24;
@@ -184,6 +205,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         history = findViewById(R.id.history);
         history.setOnClickListener(this);
 
+        // 파일
+        file = findViewById(R.id.file);
+        file.setOnClickListener(this);
 ////////////////////////////////////////////////////
 /////
 /////  텍스트
@@ -236,7 +260,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     BACKUP = new Gson().toJson(history_list);
                     BackupData.setPrefHistory(MainActivity.this, BACKUP);
 
-                    adapter.notifyItemRemoved(viewHolder.getAdapterPosition()); //TODO 스와이프 삭제기능
+                    adapter.notifyItemRemoved(viewHolder.getAdapterPosition());
                     new Handler().postDelayed(new Runnable() {
                         @Override
                         public void run() {
@@ -264,7 +288,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             @Override// 이걸로 ... 뒷 배경
             public void onChildDraw(Canvas c, RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, float dX, float dY, int actionState, boolean isCurrentlyActive) {
-                Log.e("actionState 액션 ::",""+actionState);
                 View itemView = viewHolder.itemView;
                 if (viewHolder.getAdapterPosition() == -1) {
                     return;
@@ -323,8 +346,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
 
+        ///// 퀴즈
+        quiz_=findViewById(R.id.quiz_);
+        // 퀴즈 모드 표시
+        quiz_info= findViewById(R.id.quiz_info);
+        // 퀴즈 시간
+        quiz_time=findViewById(R.id.quiz_time);
+        // 퀴즈 점수
+        quiz_score = findViewById(R.id.quiz_score);
+        // 퀴즈 스테이지
+        quiz_stage= findViewById(R.id.quiz_stage);
+        // 퀴즈 카운트
+        quiz_count =findViewById(R.id.quiz_count);
+        // 퀴즈 종료
+        quiz_close= findViewById(R.id.quiz_close);
+        quiz_close.setOnClickListener(this);
 
-
+        quizVisible(View.GONE);
     }
 
     @Override
@@ -336,36 +374,65 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     if(tmp==')')
                         during.setText(during.getText() + "*");
                 }
+                if(quiz_flag) {
+                    if(during.getText().length()>0) {
+                        char last = during.getText().toString().charAt(during.getText().length() - 1);
+                        if (!Character.isDigit(last))
+                            during.setText("");
+                    }
+                }
+                during.setTextColor(getColor(R.color.blacky));
                 during.setText(during.getText() + String.valueOf(i));
+
             }
         }
         if(view == result_button){
             if(during.getText().length()>0) {
-                Cal c=new Cal();
-                String kk=" ";
-                kk = c.bracketCalMain(during.getText().toString());
+                if(quiz_flag){
+                    quiz_count.setText("도전\n"+(++quiz_count_));
+                    // 퀴즈 모드일 때,
+                    during.setTextColor(getColor(R.color.blacky));
+                    // 눌렀을 때 답이 맞으면 넘어감
+                    if(during.getText().toString().equals(fileList.get(quiz_num).result)){
+                        quiz_num++;
+                        if(quiz_num>=fileList.size()){
+                            return;
+                        }
+                        quiz_stage.setText((1+quiz_num)+"/"+fileList.size());
+                        result_text.setText(fileList.get(quiz_num).cal);
+                        during.setText("");
+                    }else{// 답이 아니면
+                        during.setTextColor(getColor(R.color.colorAccent));
+                        during.setText("정답이 아닙니다");
+                    }
 
-                Log.e(" kkk ::: ", " "+kk);
-                // 숫자가 아니면 빨간색
-                if(kk.length()>0) {
-                    if (Character.isDigit(kk.charAt(kk.length() - 1)))
-                        result_text.setTextColor(getColor(R.color.result_button_up));
-                    else
-                        result_text.setTextColor(getColor(R.color.colorAccent));
-                    result_text.setText(kk);
+                }else{
+                    Cal c=new Cal();
+                    String kk=" ";
+                    kk = c.bracketCalMain(during.getText().toString());
 
+                    Log.e(" kkk ::: ", " "+kk);
+                    // 숫자가 아니면 빨간색
+                    if(kk.length()>0) {
+                        if (Character.isDigit(kk.charAt(kk.length() - 1)))
+                            result_text.setTextColor(getColor(R.color.result_button_up));
+                        else
+                            result_text.setTextColor(getColor(R.color.colorAccent));
+                        result_text.setText(kk);
 
+                        during.setText("("+during.getText()+")");//
+                        // 50개 넘으면 하나 삭제.
+                        if(history_list.size()>=50)
+                            history_list.remove(history_list.size()-1);
+                        history_list.add(0,new HistoryData(during.getText().toString(),kk));
+                        adapter.notifyDataSetChanged();
 
-                    // 50개 넘으면 하나 삭제.
-                    if(history_list.size()>=50)
-                        history_list.remove(history_list.size()-1);
-                    history_list.add(0,new HistoryData(during.getText().toString(),kk));
-                    adapter.notifyDataSetChanged();
-
-                    // 백업
-                    BACKUP = new Gson().toJson(history_list);
-                    BackupData.setPrefHistory(MainActivity.this,BACKUP);
+                        // 백업
+                        BACKUP = new Gson().toJson(history_list);
+                        BackupData.setPrefHistory(MainActivity.this,BACKUP);
+                    }
                 }
+
 
             }
         }
@@ -381,7 +448,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         else if(view == cal[0]) {// 더하기
             checkCal("+");
         }
-        else if(view == cal[1]){// 빼기 TODO 음수로 변환도 가능하게.
+        else if(view == cal[1]){// 빼기
             checkCal("-");
         }
         else if(view == cal[2]){// 곱하기
@@ -390,7 +457,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         else if(view == cal[3]){// 나누기
             checkCal("/");
         }
-        else if(view == dot){ // TODO 앞에 .이 이미 있으면 안붙임.
+        else if(view == dot){ //
             boolean dot_flag=false;
 
             if(!during.getText().toString().contains(".")){
@@ -452,9 +519,29 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         else if(view == during|| view == result_text){
             clipBoard();
         }
+        else if(view == file){
+//            Intent i = new Intent(Intent.ACTION_GET_CONTENT);
+//            i.setType("text/plain");  //여러가지 Type은 아래 표로 정리해두었습니다.
+//            i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+//            startActivity(i.createChooser(i,"파일 탐색기 선택"));
+            Intent intent = new Intent();
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("text/plain");
+            intent.setAction(Intent.ACTION_GET_CONTENT);
+            startActivityForResult(Intent.createChooser(intent, "파일 탐색기 선택"), 82);
 
 
+        }
+        ///
+        else if(view == quiz_close){
+            quizVisible(View.GONE);
+            result_text.setText("");
+            during.setText("");
+            quiz_flag=false;
+        }
 
+/////////////////////////////////////
+/////////////////////////////////////
         if(during.getText().length()>0){
             backspace.setImageDrawable(getDrawable(R.drawable.backspace));
             backspace.setEnabled(true);
@@ -466,7 +553,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         scrollBottom(during);
         scrollBottom(result_text);
     }
-    private void scrollBottom(TextView textView) {
+    public void scrollBottom(TextView textView) {
         int lineTop =  textView.getLayout().getLineTop(textView.getLineCount()) ;
         int scrollY = lineTop - textView.getHeight();
         if (scrollY > 0) {
@@ -476,7 +563,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    public void checkBracket(){// TODO 이거 스택에 ( 검사하고 해야할듯
+    public void checkBracket(){//
         if(during.getText().length()>0){
             char tmp = during.getText().toString().charAt(during.getText().length()-1);
             int start=0;
@@ -523,5 +610,115 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         clipboardManager.setPrimaryClip(cd);
         Toast.makeText(this, "클립보드에 복사 되었습니다.", Toast.LENGTH_LONG).show();
     }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (resultCode == Activity.RESULT_OK) {
+            if (data == null) {
+                return;
+            } else {
+                Uri uri = data.getData();
 
+                fileAllStr = readTextFile(uri);
+                Log.e("TEXT", fileAllStr);
+                // 파일 읽고나서
+                String[] divStr=fileAllStr.split("\n");
+                for(String s:divStr)
+                    fileStr.add(s);
+                // 파일이 한줄이면 == 불러와서 during에 입력  ==> 문제
+                if(fileStr.size()==1 && !fileStr.get(0).contains("=")){
+                    during.setText(fileStr.get(0));
+                }
+                // 여러 줄이면 퀴즈로???
+                else{
+                    boolean check_quiz=true;
+                    // 문제 검증
+                    for(String s:fileStr) {
+                        if(!s.contains("="))
+                            check_quiz=false;
+                    }
+
+                    if(check_quiz) {
+                        // 문제를 저장
+                        for (String s : fileStr) {
+                            String left, right;
+                            left=s.substring(0,s.indexOf("="));
+                            right=s.substring(s.indexOf("=")+1);
+                            Log.e("레프트 라이트", " l:"+left+ "  r:"+right);
+                            fileList.add(new HistoryData(left, right));
+                        }
+                        // 셔플
+                        Collections.shuffle(fileList);
+
+                        // 퀴즈 모드 온
+                        quiz_flag = true;
+                        quiz_num=quiz_count_=0;
+                        quiz_time1=System.currentTimeMillis();
+                        // 퀴즈 VISIBLE 로 바꾸고
+                        quizVisible(View.VISIBLE);
+                        result_text.setText(fileList.get(quiz_num).cal);
+                        quiz_stage.setText((quiz_num+1)+"/"+fileList.size());
+
+                        quiz_count.setText("도전\n"+quiz_count_);
+
+
+
+                    }
+                }
+            }
+        } else {
+            return;
+        }
+    }
+
+    private String readTextFile(Uri uri){
+        BufferedReader reader = null;
+        StringBuilder builder = new StringBuilder();
+        try {
+            reader = new BufferedReader(new InputStreamReader(getContentResolver().openInputStream(uri), "MS949")); // 한글 읽기 위해서. ( 소스파일이 MS949 형식)
+            String line = "";
+
+            while ((line = reader.readLine()) != null) {
+                builder.append(line+"\n");
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (reader != null){
+                try {
+                    reader.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return builder.toString();
+    }
+
+    public void quizVisible(int visible){
+        // 퀴즈 문제
+        quiz_.setVisibility(visible);
+        // 퀴즈 배너
+        quiz_info.setVisibility(visible);
+        // 퀴즈 시간
+        quiz_time.setVisibility(visible);
+        // 퀴즈 점수
+        quiz_score.setVisibility(visible);
+        // 퀴즈 스테이지
+        quiz_stage.setVisibility(visible);
+        // 퀴즈 카운트
+        quiz_count.setVisibility(visible);
+        // 퀴즈 종료
+        quiz_close.setVisibility(visible);
+    }
 }
+
+// TODO histroy - > file 로 저장
+// TODO 퀴즈 만들기
+/*
+    1. 파일에서 입력 ( 형식 : 1 + 2 = 3  // 좌항 우항 나눠서)
+    2. 랜덤하게 한문제씩 화면에 출력 ( 중복 x // 문제 수만큼 인트 배열, 랜덤으로 섞기 = Collections.Shuffle(list) )
+    3. 정답인지 확인 ( 점수? , 정답률 )
+    4. 문제 풀이 시간 저장 ( 각문제 ?, 전체  합)
+
+ */

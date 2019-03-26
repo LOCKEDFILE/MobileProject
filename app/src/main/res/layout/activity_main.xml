@@ -438,4 +438,102 @@
         app:layout_constraintVertical_bias="0.0"
         app:srcCompat="@drawable/file" />
 
+    <Button
+        android:id="@+id/quiz_info"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:background="@drawable/bit_button"
+        android:text="퀴즈 모드"
+        android:textAlignment="center"
+        android:textColor="@color/white_"
+        android:textSize="25dp"
+        android:visibility="visible"
+        app:layout_constraintBottom_toBottomOf="@+id/and"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/and" />
+
+    <Button
+        android:id="@+id/quiz_time"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:text="시간\n## / $$"
+        android:textAlignment="center"
+        android:textAllCaps="true"
+        android:textSize="18dp"
+        android:typeface="sans"
+        app:layout_constraintBottom_toBottomOf="@+id/bracket"
+        app:layout_constraintEnd_toEndOf="@+id/mod"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="@+id/bracket"
+        app:layout_constraintTop_toTopOf="@+id/bracket"
+        app:layout_constraintVertical_bias="0.0" />
+
+    <Button
+        android:id="@+id/quiz_score"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:text="점수\n ##/$$"
+        android:textAlignment="center"
+        android:textColor="@color/result_button_up"
+        android:textSize="18dp"
+        app:layout_constraintBottom_toBottomOf="@+id/minus"
+        app:layout_constraintEnd_toEndOf="@+id/div"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="@+id/div"
+        app:layout_constraintTop_toTopOf="@+id/minus"
+        app:layout_constraintVertical_bias="0.0" />
+
+    <Button
+        android:id="@+id/quiz_stage"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:text="##/$$"
+        android:textColor="@color/result_button_down"
+        android:textSize="24dp"
+        app:layout_constraintBottom_toBottomOf="@+id/div"
+        app:layout_constraintEnd_toEndOf="@+id/div"
+        app:layout_constraintStart_toStartOf="@+id/div"
+        app:layout_constraintTop_toTopOf="@+id/div" />
+
+    <Button
+        android:id="@+id/quiz_close"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:text="종료"
+        android:textColor="@color/colorAccent"
+        android:textSize="30dp"
+        app:layout_constraintBottom_toBottomOf="@+id/plus"
+        app:layout_constraintEnd_toEndOf="@+id/plus"
+        app:layout_constraintStart_toStartOf="@+id/plus"
+        app:layout_constraintTop_toTopOf="@+id/plus" />
+
+    <Button
+        android:id="@+id/quiz_count"
+        android:layout_width="69dp"
+        android:layout_height="wrap_content"
+        android:text="도전\n##"
+        android:textColor="@color/result_button_up"
+        android:textSize="18dp"
+        app:layout_constraintBottom_toBottomOf="@+id/mul"
+        app:layout_constraintEnd_toEndOf="@+id/mul"
+        app:layout_constraintStart_toStartOf="@+id/mul"
+        app:layout_constraintTop_toTopOf="@+id/mul" />
+
+    <TextView
+        android:id="@+id/quiz_"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:text="문제."
+        android:textColor="@color/result_button_down"
+        android:textSize="30dp"
+        android:textStyle="italic"
+        app:layout_constraintBottom_toBottomOf="@+id/text_result"
+        app:layout_constraintStart_toStartOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>
