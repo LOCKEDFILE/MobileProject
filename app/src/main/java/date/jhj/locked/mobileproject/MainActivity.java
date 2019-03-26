@@ -261,36 +261,33 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
             GradientDrawable background;
             Drawable xMark;
-            boolean initiated;
 
             @Override// 이걸로 ... 뒷 배경
             public void onChildDraw(Canvas c, RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, float dX, float dY, int actionState, boolean isCurrentlyActive) {
+                Log.e("actionState 액션 ::",""+actionState);
                 View itemView = viewHolder.itemView;
                 if (viewHolder.getAdapterPosition() == -1) {
                     return;
                 }
 
-                if (!initiated) {
-                    background=new GradientDrawable();
-                    background.setCornerRadius(60f);
-                    initiated = true;
-                }
-                // dx 음수 == <<<
+                background=new GradientDrawable();
+                xMark=new GradientDrawable();
+                background.setCornerRadius(60f);
+                // dx 음수 == <<< 스와이프
                 if(dX <0) {
                     background.setColor(getColor(R.color.colorAccent));
                     xMark = ContextCompat.getDrawable(MainActivity.this, R.drawable.backspace);
                     xMark.setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_ATOP);
                     background.setBounds(itemView.getLeft() + (int) dX, itemView.getTop(), itemView.getRight(), itemView.getBottom());
-                    xMark.setBounds(itemView.getRight() - 80, itemView.getHeight() / 2, itemView.getRight() - 30, itemView.getHeight() / 2 + 50);
-                }else if(dX>0){
+                    xMark.setBounds(itemView.getRight() - 80, itemView.getTop()+30, itemView.getRight() - 30, itemView.getTop() + 80);
+                }else if(dX>0){// >>> 스와이프
                     background.setColor(getColor(R.color.result_button_up));
                     xMark = ContextCompat.getDrawable(MainActivity.this, R.drawable.copy);
                     xMark.setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_ATOP);
                     background.setBounds(itemView.getLeft(), itemView.getTop(), itemView.getRight()+(int)dX, itemView.getBottom());
-                    xMark.setBounds(itemView.getLeft() + 30, itemView.getHeight() / 2, itemView.getLeft() + 80, itemView.getHeight() / 2 + 50);
+                    xMark.setBounds(itemView.getLeft() + 30, itemView.getTop()+30 , itemView.getLeft() + 80, itemView.getTop()+ 80);
 
                 }
-
                 background.draw(c);
                 xMark.draw(c);
                 super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive);
