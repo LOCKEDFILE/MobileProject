@@ -398,10 +398,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 else if(during.getText().toString().charAt(i)==')')
                     end++;
             }
-            if(end==start&&!operator.contains(tmp+"")){
+            if(end==start&&!operator.contains(tmp+"")&&tmp!='~'){
                 during.setText(during.getText() + "*(");
             }
-            else if(tmp == '('||operator.contains(tmp+"")) {
+            else if(tmp == '('||operator.contains(tmp+"")||tmp=='~') {
                 during.setText(during.getText() + "(");
             }
             else {
@@ -415,8 +415,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void checkCal(String a){
         if(during.getText().length()>0) {
             char tmp = during.getText().toString().charAt(during.getText().length()-1);
-            if ('~'==tmp)
-                ;
+            if ('~'==tmp && a.equals("-"))
+                during.setText(during.getText() + a);
             else if (!operator.contains(tmp+""))
                 during.setText(during.getText() + a);
             else

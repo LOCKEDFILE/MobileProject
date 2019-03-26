@@ -101,9 +101,19 @@ public class Cal {
                     nextChar = firstQueue.poll().toString();
                     if (nextChar.equals("~")) // not 연산자 중복 해결
                         continue;
-                    int nextInt = (int)Double.parseDouble(nextChar);
-                    nextInt = ~nextInt;
+
+                    int nextInt;
+                    if(nextChar.equals("-")){
+                        nextChar = firstQueue.poll().toString();
+                        nextInt = (int) Double.parseDouble(nextChar);
+                        nextInt = ~(-nextInt);
+                    }else {
+                        nextInt = (int) Double.parseDouble(nextChar);
+                        nextInt = ~nextInt;
+
+                    }
                     secondQueue.offer(nextInt + "");
+
                 }
             }else
                 secondQueue.offer(oneChar);
@@ -247,17 +257,24 @@ public class Cal {
             if(oneChar.equals("-")){
                 String minusValue=inQueue.poll().toString();
                 plus.offer("+");
-                plus.offer("-"+minusValue);
+                if(minusValue.contains("-")) {
+                    minusValue=minusValue.trim().replace("-","");
+                    plus.offer(minusValue);
+                }
+                else
+                    plus.offer("-"+minusValue);
             }else
                 plus.offer(oneChar);
         }
-        Log.e("PLUS :: " , " "+plus+ " ,   dd::"+plus.peek());
+        Log.e("PLUS :: " , " "+plus+ " ,   dd::"+(-~7)+" ddd: "+(~-7));
         // 이후 덧셈
         BigDecimal nResult;
         if(plus.peek().equals("+"))
             nResult= new BigDecimal("0");
-        else
-            nResult= new BigDecimal(plus.peek().toString());
+        else {
+            String insert=plus.peek().toString();
+            nResult = new BigDecimal(insert);
+        }
 
         while (plus.peek() != null) {
             oneChar = plus.poll().toString();
