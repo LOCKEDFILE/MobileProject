@@ -1,24 +1,31 @@
 package date.jhj.locked.mobileproject;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.app.Activity;
+import android.content.ClipData;
+import android.content.ClipDescription;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.gson.Gson;
 
@@ -173,6 +180,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         result_text=findViewById(R.id.text_result);
         during.setText("");
         result_text.setText("");
+        during.setOnClickListener(this);
+        result_text.setOnClickListener(this);
 ////////////////////////////////////////////////////
 /////
 /////  히스토리
@@ -362,6 +371,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         else if(view == bit[3]){
             checkCal("^");
+        }else if(view == during|| view == result_text){
+            clipBoard();
         }
 
 
@@ -413,5 +424,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    public void clipBoard(){
+        ClipData.Item item = new ClipData.Item(during.getText().toString());
+        String[] mimeType = new String[1];
+        mimeType[0] = ClipDescription.MIMETYPE_TEXT_URILIST;
+        ClipData cd = new ClipData(new ClipDescription("text_data", mimeType), item);
+        android.content.ClipboardManager clipboardManager = (android.content.ClipboardManager) this.getSystemService(Context.CLIPBOARD_SERVICE);
+        clipboardManager.setPrimaryClip(cd);
+        Toast.makeText(this, "클립보드에 복사 되었습니다.", Toast.LENGTH_LONG).show();
+    }
 
 }
