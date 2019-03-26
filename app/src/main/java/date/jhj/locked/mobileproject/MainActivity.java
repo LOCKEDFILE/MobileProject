@@ -125,6 +125,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         backspace = findViewById(R.id.backspace);
         backspace.setOnClickListener(this);
         backspace.setLongClickable(true);
+        backspace.setEnabled(false);
         backspace.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View view) {
@@ -132,6 +133,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 return false;
             }
         });
+        backspace.setImageDrawable(getDrawable(R.drawable.backspace_white));
 
         // cal 버튼
         cal = new Button[4];
@@ -302,17 +304,33 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         else if(view == cal[3]){// 나누기
             checkCal("/");
         }
-        else if(view == dot){ // TODO 앞의 문자 검사해서 숫자면 바로 . 붙이고 아니면 0. 붙임. 그리고 숫자에 .이 이미 있으면 안붙임.
-            if(during.getText().length()>0) {
-                char tmp = during.getText().toString().charAt(during.getText().length() - 1);
-                if(tmp==')')
-                    during.setText(during.getText() + "*");
-                if(!Character.isDigit(tmp))
-                    during.setText(during.getText() + "0");
+        else if(view == dot){ // TODO 앞에 .이 이미 있으면 안붙임.
+            boolean dot_flag=false;
+
+            if(!during.getText().toString().contains(".")){
+                dot_flag=true;
             }
-            else
-                during.setText(during.getText() + "0");
-            during.setText(during.getText()+".");
+            else{     // (앞에 있다면)점 부터 맨 마지막 까지의 문자열중에 연산자가 있으면 . 생성
+                int dot_index=during.getText().toString().lastIndexOf(".");
+                String str=during.getText().toString().substring(dot_index,during.getText().length()-1);
+                Log.e("DOT :::: ", " "+str + "  is :: "+str.contains("+"));
+                if(str.contains("+")||str.contains("-")||str.contains("/")||str.contains("*")||str.contains("~")||str.contains("|")||str.contains("&")||str.contains("^")||str.contains("%"))
+                    dot_flag=true;
+                else
+                    dot_flag=false;
+            }
+            if(dot_flag){
+                if (during.getText().length() > 0) {
+                    char tmp = during.getText().toString().charAt(during.getText().length() - 1);
+                    if (tmp == ')')
+                        during.setText(during.getText() + "*");
+                    if (!Character.isDigit(tmp))
+                        during.setText(during.getText() + "0");
+                } else
+                    during.setText(during.getText() + "0");
+                during.setText(during.getText() + ".");
+            }
+
         }
         else if(view == mod){
             checkCal("%");
@@ -346,6 +364,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             checkCal("^");
         }
 
+
+
+        if(during.getText().length()>0){
+            backspace.setImageDrawable(getDrawable(R.drawable.backspace));
+            backspace.setEnabled(true);
+        }else {
+            backspace.setImageDrawable(getDrawable(R.drawable.backspace_white));
+            backspace.setEnabled(false);
+        }
     }
 
     public void checkBracket(){// TODO 이거 스택에 ( 검사하고 해야할듯

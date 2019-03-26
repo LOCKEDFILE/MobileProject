@@ -368,11 +368,11 @@
 
     <ImageButton
         android:id="@+id/backspace"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="8dp"
-        android:background="@android:color/transparent"
+        android:background="@drawable/image_button_back"
         android:scaleType="center"
         app:layout_constraintBottom_toTopOf="@+id/view"
         app:layout_constraintEnd_toEndOf="parent"
@@ -397,21 +397,21 @@
 
     <ImageButton
         android:id="@+id/history"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
         android:layout_marginStart="16dp"
         android:layout_marginBottom="8dp"
-        android:background="@android:color/transparent"
+        android:background="@drawable/image_button_back"
         app:layout_constraintBottom_toTopOf="@+id/view"
         app:layout_constraintStart_toEndOf="@+id/file"
         app:srcCompat="@drawable/history" />
 
     <ImageButton
         android:id="@+id/file"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
         android:layout_marginStart="16dp"
-        android:background="@android:color/transparent"
+        android:background="@drawable/image_button_back"
         app:layout_constraintBottom_toBottomOf="@+id/history"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@+id/history"

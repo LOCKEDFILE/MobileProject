@@ -251,14 +251,17 @@ public class Cal {
             }else
                 plus.offer(oneChar);
         }
+        Log.e("PLUS :: " , " "+plus+ " ,   dd::"+plus.peek());
         // 이후 덧셈
-        BigDecimal nResult = new BigDecimal(0);
-        if(!plus.peek().toString().equals("+")) {
-            nResult= new BigDecimal(plus.poll().toString());
-        }
+        BigDecimal nResult;
+        if(plus.peek().equals("+"))
+            nResult= new BigDecimal("0");
+        else
+            nResult= new BigDecimal(plus.peek().toString());
+
         while (plus.peek() != null) {
             oneChar = plus.poll().toString();
-            if (oneChar.equals("+-")) {
+            if ("+-".contains(oneChar)) {
                 operator = oneChar;
             } else {
                 if (operator.equals("+")) {
