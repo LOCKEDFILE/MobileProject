@@ -6,18 +6,22 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <ListView
+    <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/listview"
         android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginStart="16dp"
+        android:layout_height="600dp"
+        android:layout_marginStart="1dp"
         android:layout_marginTop="24dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="16dp"
+        android:layout_marginEnd="1dp"
+        android:layout_marginBottom="8dp"
+        android:overScrollMode="never"
         app:layout_constraintBottom_toTopOf="@+id/complete"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.473"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.736"
+        tools:listitem="@layout/history_list" />
 
     <Button
         android:id="@+id/complete"
@@ -29,6 +33,7 @@
         android:background="@drawable/bit_button"
         android:text="완료"
         android:textColor="@android:color/white"
+        android:textSize="20dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"

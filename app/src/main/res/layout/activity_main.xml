@@ -408,11 +408,12 @@
         android:id="@+id/file"
         android:layout_width="36dp"
         android:layout_height="36dp"
+        android:layout_marginStart="16dp"
         android:background="@android:color/transparent"
         app:layout_constraintBottom_toBottomOf="@+id/history"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@+id/history"
         app:layout_constraintVertical_bias="0.0"
-        app:srcCompat="@drawable/file"
-        tools:layout_editor_absoluteX="16dp" />
+        app:srcCompat="@drawable/file" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

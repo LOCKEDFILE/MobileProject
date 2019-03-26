@@ -2,6 +2,9 @@ package date.jhj.locked.mobileproject;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.ItemTouchHelper;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.DialogInterface;
 import android.graphics.Color;
@@ -13,9 +16,11 @@ import android.view.View;
 import android.view.Window;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Stack;
 
@@ -26,7 +31,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     // backspace 버튼 [1개]
     ImageButton backspace;
     // bit 연산자 [4개]
-    Button[] bit;// and or not xor
+    Button[] bit;// and or not xor  // & | ! @
     // mod 연산자, () , Clear [3개]
     Button mod;
     Button bracket;
@@ -48,6 +53,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     View dialog_view;
     HistoryAdapter adapter;
     List<HistoryData> history_list=new ArrayList<>();
+    RecyclerView listView;
+    RecyclerView.LayoutManager mLayoutManager;
+    Button complete;
     // 파일 읽기
     ImageButton file;
 ////////////////////////////////////////////////////
@@ -150,6 +158,54 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 /////  연산 구현
 /////
 ////////////////////////////////////////////////////
+        AlertDialog.Builder bu = new AlertDialog.Builder(MainActivity.this);
+        dialog = bu.create();
+
+        // xml파일을 dialog로 붙이기
+        LayoutInflater inflater = getLayoutInflater();
+        dialog_view = inflater.inflate(R.layout.history_dialog, null);
+        listView=dialog_view.findViewById(R.id.listview);
+
+        listView.addItemDecoration(new Divider(MainActivity.this));
+
+
+        complete=dialog_view.findViewById(R.id.complete);
+        complete.setOnClickListener(this);
+
+        adapter=new HistoryAdapter(history_list);
+        adapter.setHasStableIds(false);
+
+        adapter.notifyDataSetChanged();
+
+        final ItemTouchHelper.SimpleCallback simpleItemTouchCallback =  new ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP | ItemTouchHelper.DOWN| ItemTouchHelper.START| ItemTouchHelper.END, ItemTouchHelper.START|ItemTouchHelper.END) {
+            @Override
+            public void onSwiped(RecyclerView.ViewHolder viewHolder, int swipeDir) {
+                history_list.remove(viewHolder.getAdapterPosition());
+                adapter.notifyItemRemoved(viewHolder.getAdapterPosition()); //TODO 스와이프 삭제기능
+            }
+
+            @Override
+            public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
+                final int fromPos = viewHolder.getAdapterPosition();
+                final int toPos = target.getAdapterPosition();
+                Collections.swap(history_list,fromPos,toPos);
+                adapter.notifyItemMoved(fromPos,toPos);
+                return true;
+            }
+        };
+
+        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(simpleItemTouchCallback);
+        itemTouchHelper.attachToRecyclerView(listView);
+        listView.setAdapter(adapter);
+        mLayoutManager = new LinearLayoutManager(this);
+        listView.setLayoutManager(mLayoutManager);
+
+        dialog_view.setBackgroundColor(getColor(android.R.color.white));
+        dialog_view.setBackground(getDrawable(R.drawable.dialog));
+        dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));// 테두리 둥글게하려고
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setView(dialog_view);
+
 
     }
 
@@ -165,7 +221,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 during.setText(during.getText() + String.valueOf(i));
             }
         }
-        if(view == result_button){// TODO during 의 문자열을 우선순위를 적용하여 계산
+        if(view == result_button){
             result_text.setText(during.getText());
             if(result_text.getText().length()>0) {
                 Cal c=new Cal();
@@ -174,6 +230,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 result_text.setText(kk);
 
                 history_list.add(new HistoryData(during.getText().toString(),kk));
+                adapter.notifyDataSetChanged();
             }
         }
         else if(view == clear){// 글씨 초기화
@@ -197,6 +254,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             checkCal("/");
         }
         else if(view == dot){ // TODO 앞의 문자 검사해서 숫자면 바로 . 붙이고 아니면 0. 붙임. 그리고 숫자에 .이 이미 있으면 안붙임.
+            if(during.getText().length()>0) {
+                char tmp = during.getText().toString().charAt(during.getText().length() - 1);
+                if(tmp==')')
+                    during.setText(during.getText() + "*");
+            }
             during.setText(during.getText()+".");
         }
         else if(view == mod){
@@ -205,21 +267,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             checkBracket();
         }
         else if(view == history){
-            AlertDialog.Builder bu = new AlertDialog.Builder(this);
-            dialog = bu.create();
-
-            // xml파일을 dialog로 붙이기
-            LayoutInflater inflater = getLayoutInflater();
-            dialog_view = inflater.inflate(R.layout.history_dialog, null);
-            adapter=new HistoryAdapter(this, history_list);
-
-
-            dialog_view.setBackgroundColor(getColor(android.R.color.white));
-            dialog_view.setBackground(getDrawable(R.drawable.dialog)); // 테두리 둥글게 하려공
-            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));// 테두리 둥글게하려고
-            dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-            dialog.setView(dialog_view);
             dialog.show();
+        }
+        else if(view == complete){
+            dialog.dismiss();
+        }
+        else if(view == bit[0]){
+            during.setText(during.getText()+"&");
+        }
+        else if(view == bit[1]){
+            during.setText(during.getText()+"|");
+        }
+        else if(view == bit[2]){
+            during.setText(during.getText()+"!");
+        }
+        else if(view == bit[3]){
+            during.setText(during.getText()+"@");
         }
 
     }
