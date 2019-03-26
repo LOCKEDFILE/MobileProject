@@ -6,6 +6,7 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.app.Activity;
 import android.content.DialogInterface;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
@@ -19,19 +20,23 @@ import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import com.google.gson.Gson;
+
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Stack;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener{
+    static MainActivity activity;
 ////////////////////////////////////////////////////
 ///// BUTTON
 ////////////////////////////////////////////////////
     // backspace 버튼 [1개]
     ImageButton backspace;
     // bit 연산자 [4개]
-    Button[] bit;// and or not xor  // & | ! @
+    Button[] bit;// and or not xor  // & | ~ ^
     // mod 연산자, () , Clear [3개]
     Button mod;
     Button bracket;
@@ -41,7 +46,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     Button dot;
     // 4칙 연산자 [4개]
     Button[] cal; // + - * / (plus, minus, mul, div)
-    String str_cal="+-*/%";
+    String operator="+-*/%&|^";
     // 결과 버튼[1개]
     Button result_button;
     // 최근 목록
@@ -58,6 +63,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     Button complete;
     // 파일 읽기
     ImageButton file;
+
+    // Backup
+    String BACKUP;
 ////////////////////////////////////////////////////
 ///// 수식
 ////////////////////////////////////////////////////
@@ -70,6 +78,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        activity =this;
+        // BACK UP
+        BACKUP = BackupData.getPrefHistory(MainActivity.this);
+
+        if(BACKUP!="") {
+            HistoryData[] array= new Gson().fromJson(BACKUP, HistoryData[].class);
+            history_list.addAll(Arrays.asList(array));
+        }
+
 ////////////////////////////////////////////////////
 /////
 /////  버튼
@@ -155,7 +173,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         result_text.setText("");
 ////////////////////////////////////////////////////
 /////
-/////  연산 구현
+/////  히스토리
 /////
 ////////////////////////////////////////////////////
         AlertDialog.Builder bu = new AlertDialog.Builder(MainActivity.this);
@@ -180,7 +198,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         final ItemTouchHelper.SimpleCallback simpleItemTouchCallback =  new ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP | ItemTouchHelper.DOWN| ItemTouchHelper.START| ItemTouchHelper.END, ItemTouchHelper.START|ItemTouchHelper.END) {
             @Override
             public void onSwiped(RecyclerView.ViewHolder viewHolder, int swipeDir) {
+                Log.e("포지션", " "+viewHolder.getAdapterPosition());
                 history_list.remove(viewHolder.getAdapterPosition());
+                // 백업
+                BACKUP = new Gson().toJson(history_list);
+                BackupData.setPrefHistory(MainActivity.this,BACKUP);
+
                 adapter.notifyItemRemoved(viewHolder.getAdapterPosition()); //TODO 스와이프 삭제기능
             }
 
@@ -189,11 +212,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 final int fromPos = viewHolder.getAdapterPosition();
                 final int toPos = target.getAdapterPosition();
                 Collections.swap(history_list,fromPos,toPos);
+                TextView beforeTV = viewHolder.itemView.findViewById(R.id.count);
+                TextView afterTV = target.itemView.findViewById(R.id.count);
+                String before= beforeTV.getText().toString();
+                String after= afterTV.getText().toString();
+
+                beforeTV.setText(after);
+                afterTV.setText(before);
+
                 adapter.notifyItemMoved(fromPos,toPos);
                 return true;
             }
         };
-
         ItemTouchHelper itemTouchHelper = new ItemTouchHelper(simpleItemTouchCallback);
         itemTouchHelper.attachToRecyclerView(listView);
         listView.setAdapter(adapter);
@@ -202,9 +232,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         dialog_view.setBackgroundColor(getColor(android.R.color.white));
         dialog_view.setBackground(getDrawable(R.drawable.dialog));
-        dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));// 테두리 둥글게하려고
+        dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
         dialog.setView(dialog_view);
+
+
+
 
 
     }
@@ -222,15 +255,31 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }
         if(view == result_button){
-            result_text.setText(during.getText());
-            if(result_text.getText().length()>0) {
+            if(during.getText().length()>0) {
                 Cal c=new Cal();
                 String kk=" ";
                 kk = c.bracketCalMain(during.getText().toString());
-                result_text.setText(kk);
 
-                history_list.add(new HistoryData(during.getText().toString(),kk));
-                adapter.notifyDataSetChanged();
+                Log.e(" kkk ::: ", " "+kk);
+                // 숫자가 아니면 빨간색
+                if(kk.length()>0) {
+                    if (Character.isDigit(kk.charAt(kk.length() - 1)))
+                        result_text.setTextColor(getColor(R.color.result_button_up));
+                    else
+                        result_text.setTextColor(getColor(R.color.colorAccent));
+                    result_text.setText(kk);
+
+                    // 50개 넘으면 하나 삭제.
+                    if(history_list.size()>=50)
+                        history_list.remove(history_list.size()-1);
+                    history_list.add(0,new HistoryData(during.getText().toString(),kk));
+                    adapter.notifyDataSetChanged();
+
+                    // 백업
+                    BACKUP = new Gson().toJson(history_list);
+                    BackupData.setPrefHistory(MainActivity.this,BACKUP);
+                }
+
             }
         }
         else if(view == clear){// 글씨 초기화
@@ -244,7 +293,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         else if(view == cal[0]) {// 더하기
             checkCal("+");
         }
-        else if(view == cal[1]){// 빼기
+        else if(view == cal[1]){// 빼기 TODO 음수로 변환도 가능하게.
             checkCal("-");
         }
         else if(view == cal[2]){// 곱하기
@@ -258,7 +307,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 char tmp = during.getText().toString().charAt(during.getText().length() - 1);
                 if(tmp==')')
                     during.setText(during.getText() + "*");
+                if(!Character.isDigit(tmp))
+                    during.setText(during.getText() + "0");
             }
+            else
+                during.setText(during.getText() + "0");
             during.setText(during.getText()+".");
         }
         else if(view == mod){
@@ -273,16 +326,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             dialog.dismiss();
         }
         else if(view == bit[0]){
-            during.setText(during.getText()+"&");
+            checkCal("&");
         }
         else if(view == bit[1]){
-            during.setText(during.getText()+"|");
+            checkCal("|");
         }
         else if(view == bit[2]){
-            during.setText(during.getText()+"!");
+            // ~ 연산자만 앞에 옴.
+            // 어느 상황에서도 올 수 있음?
+            // 숫자나 ) 뒤에는 *붙일것..?
+            if(during.getText().length()>0) {
+                char last = during.getText().charAt(during.getText().length() - 1);
+                if (last == ')' || Character.isDigit(last))
+                    during.setText(during.getText() + "*");
+            }
+            during.setText(during.getText() + "~");
         }
         else if(view == bit[3]){
-            during.setText(during.getText()+"@");
+            checkCal("^");
         }
 
     }
@@ -299,10 +360,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 else if(during.getText().toString().charAt(i)==')')
                     end++;
             }
-            if(end==start&&!str_cal.contains(tmp+"")){
+            if(end==start&&!operator.contains(tmp+"")){
                 during.setText(during.getText() + "*(");
             }
-            else if(tmp == '('||str_cal.contains(tmp+"")) {
+            else if(tmp == '('||operator.contains(tmp+"")) {
                 during.setText(during.getText() + "(");
             }
             else {
@@ -316,10 +377,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void checkCal(String a){
         if(during.getText().length()>0) {
             char tmp = during.getText().toString().charAt(during.getText().length()-1);
-            if (!str_cal.contains(tmp+""))
+            if ('~'==tmp)
+                ;
+            else if (!operator.contains(tmp+""))
                 during.setText(during.getText() + a);
             else
                 during.setText(during.getText().subSequence(0,during.getText().length()-1) + a);
         }
     }
+
+
 }

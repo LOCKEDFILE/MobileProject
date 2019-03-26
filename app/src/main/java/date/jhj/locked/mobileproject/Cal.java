@@ -1,5 +1,7 @@
 package date.jhj.locked.mobileproject;
 
+import android.util.Log;
+
 import java.math.BigDecimal;
 import java.util.LinkedList;
 import java.util.Queue;
@@ -15,9 +17,6 @@ public class Cal {
         // 1. 1차 문자열 Parsing
         Queue firstQueue;
         firstQueue = stringParsing(sNumList);
-        System.out.println("----------------------------------------------");
-        System.out.println("괄호 1차  => " + firstQueue.toString());
-
         // 2. 2차 괄호안 계산
         Queue secondQueue = new LinkedList();
         String oneChar;
@@ -30,14 +29,18 @@ public class Cal {
                 secondQueue.offer(oneChar);
             }
         }
-
+        secondQueue= bitCal(secondQueue);
+        Log.e("bit 변경 후", " "+secondQueue);
         div_flag=false;
         //3. Queue에 저장 된 값 중  곱셈. 나눗셈 계산
         secondQueue = multiplyDivideCal(secondQueue);
+
+        Log.e("곱 나누기 변경 후", " "+secondQueue);
         if(div_flag)
             return "0으로 나눌 수 없습니다.";
         //4. Queue에 저장 된 값 중  덧셈. 뺄샘 계산
         String sResult = addSubtractCal(secondQueue);
+        Log.e("덧셈 변경 후", " "+sResult);
         return sResult;
     }
 
@@ -67,7 +70,7 @@ public class Cal {
         Queue firstQueue = new LinkedList();
         for(int i=0; i<sNumList.length(); i++){
             String oneChar = sNumList.substring(i, i+1);
-            if ("+-*/()".indexOf(oneChar) >= 0 ){// TODO 여기에 % 랑 비트연산자 추가
+            if ("+-*/()%&|~^".indexOf(oneChar) >= 0 ){// TODO 여기에 % 랑 비트연산자 추가
 
                 // 3+(3  과 같이   4칙연산자와 괄호가 동시에 존재 하는 경우 때문
                 if (!"".equals(sOneNum)) firstQueue.offer(sOneNum);
@@ -83,6 +86,65 @@ public class Cal {
         }
         return firstQueue;
     }
+
+    public Queue bitCal(Queue firstQueue){
+        Queue secondQueue = new LinkedList();
+        Queue thirdQueue =new LinkedList();
+        String oneChar;
+        String preChar="";
+        String nextChar="";
+        // 낫 연산자 먼저 다 돌고..
+        while(firstQueue.peek() != null){
+            oneChar  = firstQueue.poll().toString();
+            if ("~".equals(oneChar)){
+                if(firstQueue.size()>0) {
+                    nextChar = firstQueue.poll().toString();
+                    if (nextChar.equals("~")) // not 연산자 중복 해결
+                        continue;
+                    int nextInt = (int)Double.parseDouble(nextChar);
+                    nextInt = ~nextInt;
+                    secondQueue.offer(nextInt + "");
+                }
+            }else
+                secondQueue.offer(oneChar);
+        }
+        while(secondQueue.peek()!=null){
+            // 하나씩 꺼냄
+            oneChar = secondQueue.poll().toString();
+            // 꺼낸게 비트 연산자가 아니면 third에 저장
+            if(!("^&|".contains(oneChar))){
+                thirdQueue.offer(oneChar);
+            }
+            else{
+                // 비트연산자면 third에서 하나 꺼내고. second에서 하나꺼내서 연산 하고 다시 third로 넣음
+                if(secondQueue.peek()!=null) {
+                    preChar =((LinkedList) thirdQueue).getLast().toString(); // 스택으로 변경?
+                    ((LinkedList) thirdQueue).removeLast();
+                    nextChar = secondQueue.poll().toString();
+                    int preInt, nextInt;
+                    preInt = (int) Double.parseDouble(preChar);
+                    nextInt = (int) Double.parseDouble(nextChar);
+                    switch (oneChar) {
+                        case "&":
+                            nextInt = preInt & nextInt;
+                            break;
+                        case "|":
+                            nextInt = preInt | nextInt;
+                            break;
+                        case "^":
+                            nextInt = preInt ^ nextInt;
+                            break;
+                    }
+                    thirdQueue.offer(nextInt + "");
+                }
+            }
+
+        }
+        return thirdQueue;
+    }
+
+
+
 
     //------------------------------------------------------------------------
     // 2차. 괄호 내부 계산 (재귀적 호출)
@@ -102,20 +164,22 @@ public class Cal {
                 secondQueue.offer(oneChar);
             }
         }
-
+        secondQueue= bitCal(secondQueue);
+        Log.e("내부 bit 변경 후", " "+secondQueue);
         //2. Queue에 저장 된 값 중  곱셈. 나눗셈 계산
         secondQueue = multiplyDivideCal(secondQueue);
+        Log.e("내부 곱 변경 후", " "+secondQueue);
         if(div_flag)
             return "0으로 나눌 수 없습니다.";
         //3. Queue에 저장 된 값 중  덧셈. 뺄샘 계산
         String sResult = addSubtractCal(secondQueue);
-
+        Log.e("내부 합 변경 후", " "+sResult);
         return sResult;
     }
 
 
     //------------------------------------------------------------------------
-    // 곱셈, 나눗셈 계산
+    // 곱셈, 나눗셈, 나머지 계산
     //------------------------------------------------------------------------
     public Queue multiplyDivideCal(Queue inQueue){
         Queue outQueue = new LinkedList();
@@ -127,10 +191,11 @@ public class Cal {
             oneChar  = inQueue.poll().toString();
 
             if ("+-".contains(oneChar)){
-                outQueue.offer(sNum1);
+                if(!sNum1.equals(""))
+                    outQueue.offer(sNum1);
                 outQueue.offer(oneChar);
                 sNum1 = "";
-            }else if ("*/".contains(oneChar)) {
+            }else if ("*/%&|~^".contains(oneChar)) {
                 operator = oneChar;
             }else{
                 if ("".equals(sNum1)){
@@ -147,6 +212,11 @@ public class Cal {
 
                         nResult = (new BigDecimal(sNum1)).divide(new BigDecimal(sNum2), 6, BigDecimal.ROUND_UP);
                     }
+                    else if("%".equals(operator)){
+                        nResult = (new BigDecimal(sNum1)).remainder(new BigDecimal(sNum2));
+                    }
+
+
                     sResult  = String.valueOf(nResult);
 
 
@@ -166,19 +236,33 @@ public class Cal {
     // 덧셈. 뺄샘 계산
     //------------------------------------------------------------------------
     public String addSubtractCal(Queue inQueue){
+        if(inQueue.peek()==null)
+            return "";
         String operator = "";
         String oneChar  = "";
-        BigDecimal nResult  = new BigDecimal(inQueue.poll().toString());
-        while(inQueue.peek() != null){
-            oneChar  = inQueue.poll().toString();
-
-            if ("+-".contains(oneChar)){
+        Queue plus=new LinkedList();
+        // - 있으면 음수로 교체
+        while(inQueue.peek()!=null){
+            oneChar = inQueue.poll().toString();
+            if(oneChar.equals("-")){
+                String minusValue=inQueue.poll().toString();
+                plus.offer("+");
+                plus.offer("-"+minusValue);
+            }else
+                plus.offer(oneChar);
+        }
+        // 이후 덧셈
+        BigDecimal nResult = new BigDecimal(0);
+        if(!plus.peek().toString().equals("+")) {
+            nResult= new BigDecimal(plus.poll().toString());
+        }
+        while (plus.peek() != null) {
+            oneChar = plus.poll().toString();
+            if (oneChar.equals("+-")) {
                 operator = oneChar;
-            }else{
-                if ("+".equals(operator)){
+            } else {
+                if (operator.equals("+")) {
                     nResult = nResult.add(new BigDecimal(oneChar));
-                }else if ("-".equals(operator)){
-                    nResult = nResult.subtract(new BigDecimal(oneChar));
                 }
                 operator = "";
             }
