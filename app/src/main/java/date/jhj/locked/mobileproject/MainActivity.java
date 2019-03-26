@@ -16,7 +16,9 @@ import android.content.DialogInterface;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -32,6 +34,7 @@ import com.google.gson.Gson;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.DuplicateFormatFlagsException;
 import java.util.List;
 import java.util.Stack;
 
@@ -73,6 +76,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     // Backup
     String BACKUP;
+
+    //
+    float DURING_DP=24;
+    float RESULT_DP=24;
 ////////////////////////////////////////////////////
 ///// 수식
 ////////////////////////////////////////////////////
@@ -178,6 +185,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 ////////////////////////////////////////////////////
         during = findViewById(R.id.text_cal);
         result_text=findViewById(R.id.text_result);
+        during.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        result_text.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+
+        Log.e("높이 값 ", " "+during.getMeasuredHeight()+ "  ,d  ::"+ result_text.getMeasuredHeight()); // 57 57
+
+        during.setMovementMethod(new ScrollingMovementMethod());// 스크롤 하기 위함
+        result_text.setMovementMethod(new ScrollingMovementMethod());
         during.setText("");
         result_text.setText("");
         during.setOnClickListener(this);
@@ -280,6 +294,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         result_text.setTextColor(getColor(R.color.colorAccent));
                     result_text.setText(kk);
 
+
+
                     // 50개 넘으면 하나 삭제.
                     if(history_list.size()>=50)
                         history_list.remove(history_list.size()-1);
@@ -296,6 +312,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         else if(view == clear){// 글씨 초기화
             result_text.setText("");
             during.setText("");
+            DURING_DP=RESULT_DP=24f;//textsize
         }
         else if(view == backspace){
             if(during.getText().length()>0)
@@ -371,7 +388,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         else if(view == bit[3]){
             checkCal("^");
-        }else if(view == during|| view == result_text){
+        }
+        else if(view == during|| view == result_text){
             clipBoard();
         }
 
@@ -380,9 +398,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if(during.getText().length()>0){
             backspace.setImageDrawable(getDrawable(R.drawable.backspace));
             backspace.setEnabled(true);
+
         }else {
             backspace.setImageDrawable(getDrawable(R.drawable.backspace_white));
             backspace.setEnabled(false);
+        }
+        scrollBottom(during);
+        scrollBottom(result_text);
+    }
+    private void scrollBottom(TextView textView) {
+        int lineTop =  textView.getLayout().getLineTop(textView.getLineCount()) ;
+        int scrollY = lineTop - textView.getHeight();
+        if (scrollY > 0) {
+            textView.scrollTo(0, scrollY);
+        } else {
+            textView.scrollTo(0, 0);
         }
     }
 
