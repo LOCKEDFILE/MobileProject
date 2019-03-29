@@ -98,6 +98,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     Button quiz_stage;
     Button quiz_close;
     Button quiz_count;
+    Button quiz_empty;
     TextView quiz_;
     int quiz_num=0;
     int quiz_count_=0;
@@ -358,6 +359,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         quiz_stage= findViewById(R.id.quiz_stage);
         // 퀴즈 카운트
         quiz_count =findViewById(R.id.quiz_count);
+        //
+        quiz_empty = findViewById(R.id.quiz_empty);
         // 퀴즈 종료
         quiz_close= findViewById(R.id.quiz_close);
         quiz_close.setOnClickListener(this);
@@ -389,23 +392,29 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if(view == result_button){
             if(during.getText().length()>0) {
                 if(quiz_flag){
-                    quiz_count.setText("도전\n"+(++quiz_count_));
-                    // 퀴즈 모드일 때,
-                    during.setTextColor(getColor(R.color.blacky));
-                    // 눌렀을 때 답이 맞으면 넘어감
-                    if(during.getText().toString().equals(fileList.get(quiz_num).result)){
-                        quiz_num++;
-                        if(quiz_num>=fileList.size()){
-                            return;
+                    if(quiz_num<fileList.size()) {
+                        quiz_count.setText("도전\n" + (++quiz_count_));
+                        // 퀴즈 모드일 때,
+                        during.setTextColor(getColor(R.color.blacky));
+                        // 눌렀을 때 답이 맞으면 넘어감
+                        if (during.getText().toString().equals(fileList.get(quiz_num).result)) {
+                            quiz_num++;
+                            if (quiz_num >= fileList.size()) {
+                                // 문제 끝났을떄
+                                Log.e("문제 종료", " 시간 ::"+ " 점수 ::"+ "도전 횟수");
+                                during.setText("");// 점수? 시간?
+                                quiz_.setVisibility(View.GONE);
+                                result_text.setText("퀴즈 종료!\n수고하셨습니다.");
+                                return;
+                            }
+                            quiz_stage.setText((1 + quiz_num) + "/" + fileList.size());
+                            result_text.setText(fileList.get(quiz_num).cal);
+                            during.setText("");
+                        } else {// 답이 아니면
+                            during.setTextColor(getColor(R.color.colorAccent));
+                            during.setText("정답이 아닙니다");
                         }
-                        quiz_stage.setText((1+quiz_num)+"/"+fileList.size());
-                        result_text.setText(fileList.get(quiz_num).cal);
-                        during.setText("");
-                    }else{// 답이 아니면
-                        during.setTextColor(getColor(R.color.colorAccent));
-                        during.setText("정답이 아닙니다");
                     }
-
                 }else{
                     Cal c=new Cal();
                     String kk=" ";
@@ -414,22 +423,41 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     Log.e(" kkk ::: ", " "+kk);
                     // 숫자가 아니면 빨간색
                     if(kk.length()>0) {
-                        if (Character.isDigit(kk.charAt(kk.length() - 1)))
+                        if (Character.isDigit(kk.charAt(kk.length() - 1))) {
                             result_text.setTextColor(getColor(R.color.result_button_up));
+                            // 괄호 추가인데 이미 괄호가 앞뒤로 있을떄는 추가안하기,  (가 2개 이상인지 검사 -> )보다 2번째 (가 앞에 있는지 검사 -> 맞으면 ( ) 안 씌움
+                            if(during.getText().toString().charAt(0)=='('&&during.getText().toString().charAt(during.getText().toString().length()-1)==')') {// 맨 앞과 맨 뒤가 괄호 이고,
+                                int start=during.getText().toString().indexOf("(",1);
+                                int end=during.getText().toString().indexOf(")");
+                                Log.e("흠,,", "( :: "+start+ "  ):::" +end);
+                                if(start!=-1&&start<end) {// 맨 앞뒤 괄호를 빼도 멀쩡할 경우
+                                    during.setText(during.getText());//
+                                }else if(start!=-1){
+                                    during.setText("(" + during.getText() + ")");//
+                                }
+                            }else{
+                                during.setText("(" + during.getText() + ")");//
+                            }
+
+                        }
                         else
                             result_text.setTextColor(getColor(R.color.colorAccent));
                         result_text.setText(kk);
 
-                        during.setText("("+during.getText()+")");//
-                        // 50개 넘으면 하나 삭제.
-                        if(history_list.size()>=50)
-                            history_list.remove(history_list.size()-1);
-                        history_list.add(0,new HistoryData(during.getText().toString(),kk));
-                        adapter.notifyDataSetChanged();
+                        // 이전 히스토리랑 같지 않으면 저장.
+                        if(!history_list.get(0).cal.equals(during.getText().toString())){
+                            // 50개 넘으면 하나 삭제.
+                            if(history_list.size()>=50)
+                                history_list.remove(history_list.size()-1);
+                            history_list.add(0,new HistoryData(during.getText().toString(),kk));
+                            adapter.notifyDataSetChanged();
 
-                        // 백업
-                        BACKUP = new Gson().toJson(history_list);
-                        BackupData.setPrefHistory(MainActivity.this,BACKUP);
+                            // 백업
+                            BACKUP = new Gson().toJson(history_list);
+                            BackupData.setPrefHistory(MainActivity.this,BACKUP);
+                        }
+
+
                     }
                 }
 
@@ -616,6 +644,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             if (data == null) {
                 return;
             } else {
+                fileList.clear();
+                fileStr.clear();
                 Uri uri = data.getData();
 
                 fileAllStr = readTextFile(uri);
@@ -659,8 +689,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         quiz_stage.setText((quiz_num+1)+"/"+fileList.size());
 
                         quiz_count.setText("도전\n"+quiz_count_);
-
-
 
                     }
                 }
@@ -708,6 +736,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         quiz_stage.setVisibility(visible);
         // 퀴즈 카운트
         quiz_count.setVisibility(visible);
+        //
+        quiz_empty.setVisibility(visible);
         // 퀴즈 종료
         quiz_close.setVisibility(visible);
     }

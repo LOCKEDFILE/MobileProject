@@ -32,7 +32,9 @@
         android:layout_marginBottom="24dp"
         android:background="@drawable/bit_button"
         android:elevation="8dp"
+        android:gravity="center"
         android:text="확인"
+        android:textAlignment="center"
         android:textColor="@android:color/white"
         android:textSize="20dp"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -63,5 +65,5 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.842"
         app:layout_constraintStart_toStartOf="parent" />
-
+<!--전체 삭제, 파일 출력 기능 추가해야하는데 버튼으로할까?-->
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -5,7 +5,6 @@ public class HistoryData {
     public String result;
 
     HistoryData(){
-
     }
     HistoryData(String cal, String result){
         this.cal=cal;
