@@ -4,17 +4,20 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.ClipData;
 import android.content.ClipDescription;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
@@ -22,8 +25,11 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
+import android.provider.Settings;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.util.TypedValue;
@@ -40,19 +46,29 @@ import android.widget.Toast;
 import com.google.gson.Gson;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.DuplicateFormatFlagsException;
 import java.util.List;
 import java.util.Stack;
+import java.util.Timer;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener{
     static MainActivity activity;
+    static final int REQUEST_WRITE_FILE= 1000;
 ////////////////////////////////////////////////////
 ///// BUTTON
 ////////////////////////////////////////////////////
@@ -82,6 +98,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     RecyclerView listView;
     RecyclerView.LayoutManager mLayoutManager;
     Button complete;
+    Button history_clear;
+    boolean history_clear_check;
+    Button save;
     // 파일 읽기
     ImageButton file;
     String fileAllStr;
@@ -94,16 +113,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     boolean quiz_flag;
     Button quiz_info;
     Button quiz_time;
-    Button quiz_score;
+//    Button quiz_score;
     Button quiz_stage;
     Button quiz_close;
     Button quiz_count;
     Button quiz_empty;
-    TextView quiz_;
+//    TextView quiz_;
     int quiz_num=0;
     int quiz_count_=0;
 
-    long quiz_time1,quiz_time2;
+    long quiz_time_default;
+    float quiz_score_print; // 점수
 
     //
     float DURING_DP=24;
@@ -111,16 +131,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 ////////////////////////////////////////////////////
 ///// 수식
 ////////////////////////////////////////////////////
+    String beforeResult;
     // 과정 텍스트
     TextView during;
     // 결과 값 텍스트
     TextView result_text;
 
+    Timer mTimer;
+    TimeTask timerTask;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         activity =this;
         // BACK UP
         BACKUP = BackupData.getPrefHistory(MainActivity.this);
@@ -219,8 +241,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         during.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
         result_text.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
 
-        Log.e("높이 값 ", " "+during.getMeasuredHeight()+ "  ,d  ::"+ result_text.getMeasuredHeight()); // 57 57
-
         during.setMovementMethod(new ScrollingMovementMethod());// 스크롤 하기 위함
         result_text.setMovementMethod(new ScrollingMovementMethod());
         during.setText("");
@@ -233,6 +253,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 /////
 ////////////////////////////////////////////////////
         AlertDialog.Builder bu = new AlertDialog.Builder(MainActivity.this);
+        bu.setOnDismissListener(new DialogInterface.OnDismissListener() {
+            @Override
+            public void onDismiss(DialogInterface dialogInterface) {
+                //확인버튼이랑 같은 기능
+                history_clear_check=false;
+                history_clear.setBackground(getDrawable(R.drawable.white_button));
+                history_clear.setTextColor(getColor(R.color.colorAccent));
+            }
+        });
         dialog = bu.create();
 
         // xml파일을 dialog로 붙이기
@@ -245,6 +274,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         complete=dialog_view.findViewById(R.id.complete);
         complete.setOnClickListener(this);
+
+        save=dialog_view.findViewById(R.id.history_save);
+        save.setOnClickListener(this);
+
+        history_clear=dialog_view.findViewById(R.id.history_clear);
+        history_clear.setOnClickListener(this);
 
         adapter=new HistoryAdapter(history_list);
         adapter.setHasStableIds(false);
@@ -348,13 +383,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
         ///// 퀴즈
-        quiz_=findViewById(R.id.quiz_);
+//        quiz_=findViewById(R.id.quiz_);
         // 퀴즈 모드 표시
         quiz_info= findViewById(R.id.quiz_info);
         // 퀴즈 시간
         quiz_time=findViewById(R.id.quiz_time);
         // 퀴즈 점수
-        quiz_score = findViewById(R.id.quiz_score);
+//        quiz_score = findViewById(R.id.quiz_score);
         // 퀴즈 스테이지
         quiz_stage= findViewById(R.id.quiz_stage);
         // 퀴즈 카운트
@@ -380,7 +415,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 if(quiz_flag) {
                     if(during.getText().length()>0) {
                         char last = during.getText().toString().charAt(during.getText().length() - 1);
-                        if (!Character.isDigit(last))
+                        if (!Character.isDigit(last)&&last!='-')
                             during.setText("");
                     }
                 }
@@ -403,8 +438,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 // 문제 끝났을떄
                                 Log.e("문제 종료", " 시간 ::"+ " 점수 ::"+ "도전 횟수");
                                 during.setText("");// 점수? 시간?
-                                quiz_.setVisibility(View.GONE);
+//                                quiz_.setVisibility(View.GONE);
                                 result_text.setText("퀴즈 종료!\n수고하셨습니다.");
+                                mTimer.cancel();
+
+                                // 점수 == 100 - (도전 횟수-문제수)*5 and 문제당 5초 할당, 5초 초과마다 5점 감점.
+
+                                int score_count=0;
+                                int score_time=0;
+                                if(fileList.size()<quiz_count_)
+                                    score_count=quiz_count_-fileList.size();
+                                if(timerTask.getTime()>fileList.size()*5)
+                                    score_time=(timerTask.getTime()-(5*fileList.size()))/5;
+                                quiz_score_print = 100 - (score_count)*5 - (score_time)*5;
+
+                                if(quiz_score_print<0)
+                                    quiz_score_print=0;
+                                Log.e("스코어 ", "문제 점수 차감 : "+score_count+ " 문제 시간 차감 : "+score_time);
+                                during.setText("점수 : "+quiz_score_print);
                                 return;
                             }
                             quiz_stage.setText((1 + quiz_num) + "/" + fileList.size());
@@ -420,23 +471,41 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     String kk=" ";
                     kk = c.bracketCalMain(during.getText().toString());
 
+                    beforeResult = during.getText().toString();
+
+                    String sub_kk="";
+                    Log.e("kk 테스트 ", "  "+kk);
+                    if(kk.contains(".")&&!kk.contains("다")){// 소수점 이하가 0일때 출력안하기
+                        sub_kk=kk.substring(kk.indexOf("."));
+                        Log.e(" sub스트링 ::: ", " "+sub_kk);
+                        if(Double.parseDouble(sub_kk)==0)
+                            kk=kk.substring(0,kk.indexOf("."));
+                    }
                     Log.e(" kkk ::: ", " "+kk);
                     // 숫자가 아니면 빨간색
                     if(kk.length()>0) {
                         if (Character.isDigit(kk.charAt(kk.length() - 1))) {
                             result_text.setTextColor(getColor(R.color.result_button_up));
                             // 괄호 추가인데 이미 괄호가 앞뒤로 있을떄는 추가안하기,  (가 2개 이상인지 검사 -> )보다 2번째 (가 앞에 있는지 검사 -> 맞으면 ( ) 안 씌움
-                            if(during.getText().toString().charAt(0)=='('&&during.getText().toString().charAt(during.getText().toString().length()-1)==')') {// 맨 앞과 맨 뒤가 괄호 이고,
-                                int start=during.getText().toString().indexOf("(",1);
-                                int end=during.getText().toString().indexOf(")");
-                                Log.e("흠,,", "( :: "+start+ "  ):::" +end);
-                                if(start!=-1&&start<end) {// 맨 앞뒤 괄호를 빼도 멀쩡할 경우
-                                    during.setText(during.getText());//
-                                }else if(start!=-1){
-                                    during.setText("(" + during.getText() + ")");//
-                                }
-                            }else{
-                                during.setText("(" + during.getText() + ")");//
+//                            if(during.getText().toString().charAt(0)=='('&&during.getText().toString().charAt(during.getText().toString().length()-1)==')') {// 맨 앞과 맨 뒤가 괄호 이고,
+//                                int start=during.getText().toString().indexOf("(",1);
+//                                int end=during.getText().toString().indexOf(")");
+//                                Log.e("흠,,", "( :: "+start+ "  ):::" +end);
+//                                if(start!=-1&&start<end) {// 맨 앞뒤 괄호를 빼도 멀쩡할 경우
+//                                    during.setText(during.getText());//
+//                                }else if(start!=-1){
+//                                    during.setText("(" + during.getText() + ")");//
+//                                }
+//                            }else{
+//                                during.setText("(" + during.getText() + ")");//
+//                            }
+
+                            // ex) A = ((2)) + ((3)) 가 있을때,
+                            // *2 를 하면 , 10이 되야함
+                            // 괄호를 안 씌우면 7이 됨
+                            // 즉, 식 A * 2 랑 (A) * 2 의 결과가 같으면 괄호를 안 씌우고, 다르면 괄호를 씌움
+                            if(!c.bracketCalMain(beforeResult+"*2").equals(c.bracketCalMain("("+beforeResult+")*2"))){
+                                during.setText("(" + during.getText() + ")");
                             }
 
                         }
@@ -444,21 +513,26 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             result_text.setTextColor(getColor(R.color.colorAccent));
                         result_text.setText(kk);
 
-                        // 이전 히스토리랑 같지 않으면 저장.
-                        if(!history_list.get(0).cal.equals(during.getText().toString())){
-                            // 50개 넘으면 하나 삭제.
-                            if(history_list.size()>=50)
-                                history_list.remove(history_list.size()-1);
-                            history_list.add(0,new HistoryData(during.getText().toString(),kk));
+
+                        if(history_list.size()>0) {
+                            // 이전 히스토리랑 같지 않으면 저장.
+                            if (!history_list.get(0).cal.equals(during.getText().toString())) {
+                                // 50개 넘으면 하나 삭제.
+                                if (history_list.size() >= 50)
+                                    history_list.remove(history_list.size() - 1);
+                                history_list.add(0, new HistoryData(during.getText().toString(), kk));
+                                adapter.notifyDataSetChanged();
+                            }
+                        }else{
+                            history_list.add(0, new HistoryData(during.getText().toString(), kk));
                             adapter.notifyDataSetChanged();
-
-                            // 백업
-                            BACKUP = new Gson().toJson(history_list);
-                            BackupData.setPrefHistory(MainActivity.this,BACKUP);
                         }
-
-
+                        // 백업
+                        BACKUP = new Gson().toJson(history_list);
+                        BackupData.setPrefHistory(MainActivity.this, BACKUP);
                     }
+
+
                 }
 
 
@@ -477,6 +551,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             checkCal("+");
         }
         else if(view == cal[1]){// 빼기
+            if(quiz_flag&&during.getText().toString().contains("니")) {
+                during.setText("");
+                during.setTextColor(getColor(R.color.blacky));
+            }
             checkCal("-");
         }
         else if(view == cal[2]){// 곱하기
@@ -516,6 +594,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         else if(view == mod){
             checkCal("%");
         }else if(view == bracket){
+            if(quiz_flag&&during.getText().toString().contains("니")) {
+                during.setText("");
+                during.setTextColor(getColor(R.color.blacky));
+            }
             checkBracket();
         }
         else if(view == history){
@@ -523,6 +605,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         else if(view == complete){
             dialog.dismiss();
+            history_clear_check=false;
+            history_clear.setBackground(getDrawable(R.drawable.white_button));
+            history_clear.setTextColor(getColor(R.color.colorAccent));
         }
         else if(view == bit[0]){
             checkCal("&");
@@ -565,7 +650,50 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             quizVisible(View.GONE);
             result_text.setText("");
             during.setText("");
+            mTimer.cancel();
             quiz_flag=false;
+        }
+        else if(view == save){
+            if(checkPermission()) {
+                writeFile();
+                Toast.makeText(this,"파일이 생성되었습니다.",Toast.LENGTH_LONG).show();
+            }else{
+                new AlertDialog.Builder(this)
+                        .setTitle("권한 설정 알림")
+                        .setMessage("환경 설정에서 [권한 - 저장공간] 을 활성화 시켜주세요. ")
+                        .setPositiveButton("확인", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                Intent intent = new Intent();
+                                intent.setAction(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                                Uri uri = Uri.fromParts("package",
+                                        BuildConfig.APPLICATION_ID, null);
+                                intent.setData(uri);
+                                intent.setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                                startActivity(intent);
+                            }
+                        })
+                        .create()
+                        .show();
+//                Toast.makeText(this,"권한이 없습니다.",Toast.LENGTH_LONG).show();
+            }
+        }
+        else if(view == history_clear){
+            if(!history_clear_check) {
+                history_clear.setBackground(getDrawable(R.drawable.delete_button));
+                history_clear.setTextColor(getColor(R.color.white_));
+            }else{
+                history_list.clear();
+                adapter.notifyDataSetChanged();
+                // 백업
+                BACKUP = new Gson().toJson(history_list);
+                BackupData.setPrefHistory(MainActivity.this, BACKUP);
+
+                history_clear.setBackground(getDrawable(R.drawable.white_button));
+                history_clear.setTextColor(getColor(R.color.colorAccent));
+            }
+
+            history_clear_check = !history_clear_check;
         }
 
 /////////////////////////////////////
@@ -665,6 +793,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     for(String s:fileStr) {
                         if(!s.contains("="))
                             check_quiz=false;
+                        // 에러 예외 처리
                     }
 
                     if(check_quiz) {
@@ -674,7 +803,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             left=s.substring(0,s.indexOf("="));
                             right=s.substring(s.indexOf("=")+1);
                             Log.e("레프트 라이트", " l:"+left+ "  r:"+right);
-                            fileList.add(new HistoryData(left, right));
+                            if(Character.isDigit(right.charAt(right.length()-1))) {
+                                if(Double.parseDouble(right)<0)
+                                    right="("+right+")";
+                                fileList.add(new HistoryData(left, right));
+                            }
                         }
                         // 셔플
                         Collections.shuffle(fileList);
@@ -682,9 +815,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         // 퀴즈 모드 온
                         quiz_flag = true;
                         quiz_num=quiz_count_=0;
-                        quiz_time1=System.currentTimeMillis();
+                        quiz_time_default=System.currentTimeMillis();
                         // 퀴즈 VISIBLE 로 바꾸고
                         quizVisible(View.VISIBLE);
+                        timerTask = new TimeTask(quiz_time,quiz_time_default);
+                        mTimer = new Timer();
+                        mTimer.schedule(timerTask, 500, 100);
+                        during.setText("");
                         result_text.setText(fileList.get(quiz_num).cal);
                         quiz_stage.setText((quiz_num+1)+"/"+fileList.size());
 
@@ -697,8 +834,40 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             return;
         }
     }
+    public void writeFile(){
+        // 파일 생성
+        File saveFile = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/txt"); // 저장 경로
+// 폴더 생성
+        if(!saveFile.exists()){ // 폴더 없을 경우
+            saveFile.mkdir(); // 폴더 생성
+        }
+        try {
+            long now = System.currentTimeMillis(); // 현재시간 받아오기
+            Date date = new Date(now); // Date 객체 생성
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+            String nowTime = sdf.format(date);
 
-    private String readTextFile(Uri uri){
+            FileOutputStream fos = new FileOutputStream(saveFile.getPath()+"/"+nowTime+".txt", true);
+            //파일쓰기
+            BufferedWriter buf = new BufferedWriter(new OutputStreamWriter(fos,"MS949"));
+
+
+            for(HistoryData hd:history_list) {
+                buf.append(hd.cal+"="+hd.result); // 파일 쓰기
+                buf.newLine(); // 개행
+            }
+            buf.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
+
+    public String readTextFile(Uri uri){
         BufferedReader reader = null;
         StringBuilder builder = new StringBuilder();
         try {
@@ -725,13 +894,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     public void quizVisible(int visible){
         // 퀴즈 문제
-        quiz_.setVisibility(visible);
+//        quiz_.setVisibility(visible);
         // 퀴즈 배너
         quiz_info.setVisibility(visible);
         // 퀴즈 시간
         quiz_time.setVisibility(visible);
         // 퀴즈 점수
-        quiz_score.setVisibility(visible);
+//        quiz_score.setVisibility(visible);
         // 퀴즈 스테이지
         quiz_stage.setVisibility(visible);
         // 퀴즈 카운트
@@ -740,6 +909,51 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         quiz_empty.setVisibility(visible);
         // 퀴즈 종료
         quiz_close.setVisibility(visible);
+    }
+    public boolean checkPermission(){
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            // 다시 보지 않기 버튼을 만드려면 이 부분에 바로 요청을 하도록 하면 됨 (아래 else{..} 부분 제거)
+            // ActivityCompat.requestPermissions((Activity)mContext, new String[]{Manifest.permission.CAMERA, Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE}, MY_PERMISSION_CAMERA);
+            // 처음 호출시엔 if()안의 부분은 false로 리턴 됨 -> else{..}의 요청으로 넘어감
+            if (ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+                Log.e("권한 위 조건문", " 22");
+
+                return false;
+            }
+            else {
+                Log.e("권한 위 조건문", " 33");
+                ActivityCompat.requestPermissions(activity, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_WRITE_FILE);
+                return true;
+            }
+        }
+
+        Log.e("권한 위 조건문", " 44");
+        return true;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case REQUEST_WRITE_FILE:
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Log.e("권한 허가", " 상태  ok");
+
+                } else {
+                    Log.e("권한 허가", " 상태  no");
+                }
+                // 허용했다면 이 부분에서..
+
+                break;
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        checkPermission();
     }
 }
 

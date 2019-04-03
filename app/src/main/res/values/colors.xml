@@ -3,6 +3,8 @@
     <color name="colorPrimary">#008577</color>
     <color name="colorPrimaryDark">#00574B</color>
     <color name="colorAccent">#E95454</color>
+    <color name="colorAccentDark">#AF3D3D</color>
+
 
     <color name="button_up">#F7F7F7</color>
     <color name="button_down">#DADADA</color>

@@ -486,36 +486,18 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp"
         android:enabled="false"
         android:gravity="center"
         android:text="시간\n## / $$"
         android:textAlignment="center"
         android:textAllCaps="true"
-        android:textSize="18dp"
+        android:textSize="16dp"
         android:typeface="sans"
         app:layout_constraintBottom_toBottomOf="@+id/bracket"
         app:layout_constraintEnd_toEndOf="@+id/mod"
         app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="@+id/bracket"
+        app:layout_constraintStart_toStartOf="@+id/mod"
         app:layout_constraintTop_toTopOf="@+id/bracket"
-        app:layout_constraintVertical_bias="0.0" />
-
-    <Button
-        android:id="@+id/quiz_score"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:enabled="false"
-        android:gravity="center"
-        android:text="점수\n ##/$$"
-        android:textAlignment="center"
-        android:textColor="@color/result_button_up"
-        android:textSize="18dp"
-        app:layout_constraintBottom_toBottomOf="@+id/minus"
-        app:layout_constraintEnd_toEndOf="@+id/div"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="@+id/div"
-        app:layout_constraintTop_toTopOf="@+id/minus"
         app:layout_constraintVertical_bias="0.0" />
 
     <Button
@@ -568,6 +550,7 @@
         android:textColor="@color/result_button_down"
         android:textSize="30dp"
         android:textStyle="italic"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="@+id/text_result"
         app:layout_constraintStart_toStartOf="parent" />
 
@@ -575,9 +558,7 @@
         android:id="@+id/quiz_empty"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:clickable="false"
         android:enabled="false"
-        android:focusable="false"
         android:gravity="center"
         app:layout_constraintBottom_toBottomOf="@+id/plus"
         app:layout_constraintEnd_toEndOf="@+id/plus"

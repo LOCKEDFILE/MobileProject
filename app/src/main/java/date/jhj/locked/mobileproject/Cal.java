@@ -31,7 +31,6 @@ public class Cal {
         }
         secondQueue= bitCal(secondQueue);
         Log.e("bit 변경 후", " "+secondQueue);
-        div_flag=false;
         //3. Queue에 저장 된 값 중  곱셈. 나눗셈 계산
         secondQueue = multiplyDivideCal(secondQueue);
 
@@ -223,6 +222,10 @@ public class Cal {
                         nResult = (new BigDecimal(sNum1)).divide(new BigDecimal(sNum2), 6, BigDecimal.ROUND_UP);
                     }
                     else if("%".equals(operator)){
+                        if ("0".equals(sNum2)){
+                            div_flag=true;
+                            return null;
+                        }
                         nResult = (new BigDecimal(sNum1)).remainder(new BigDecimal(sNum2));
                     }
 
@@ -266,7 +269,6 @@ public class Cal {
             }else
                 plus.offer(oneChar);
         }
-        Log.e("PLUS :: " , " "+plus+ " ,   dd::"+(-~7)+" ddd: "+(~-7));
         // 이후 덧셈
         BigDecimal nResult;
         if(plus.peek().equals("+"))
