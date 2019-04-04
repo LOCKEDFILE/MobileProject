@@ -309,6 +309,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     TextView resultTV = viewHolder.itemView.findViewById(R.id.result);
                     during.setText(calTV.getText().toString());
                     result_text.setText(resultTV.getText().toString());
+                    // 색상
+                    if(result_text.getText().toString().contains("다"))
+                        result_text.setTextColor(getColor(R.color.colorAccent));
+                    else
+                        result_text.setTextColor(getColor(R.color.result_button_up));
                     //
                     new Handler().postDelayed(new Runnable() {
                         @Override
